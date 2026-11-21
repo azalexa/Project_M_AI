@@ -1,3 +1,4 @@
+
 trigger: none
 pr: none
 
@@ -7,8 +8,20 @@ pool:
 steps:
   - checkout: self
 
-  - script: |
-      echo "Azure DevOps Pipeline works"
-      echo "Projekt: Project_M_AI"
-      echo "GitHub connection works!"
-    displayName: 'test'
+  - task: AzureCLI@2
+    displayName: 'test Azure'
+    inputs:
+      azureSubscription: 'sc-project-m-ai-dev'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        echo "subskrypcje:"
+        az account show --query "name" -o tsv
+
+        echo "Resource Group:"
+        az group show \
+          --name rg-project-m-ai-dev \
+          --query "{name:name, location:location}" \
+          -o table
+
+        echo "azure connection works"
