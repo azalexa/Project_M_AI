@@ -1,0 +1,15 @@
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - checkout: self
+
+  - script: |
+      echo "Azure DevOps Pipeline działa!"
+      echo "Projekt: Project_M_AI"
+      echo "Połączenie z GitHub działa!"
+    displayName: 'Test połączenia'
