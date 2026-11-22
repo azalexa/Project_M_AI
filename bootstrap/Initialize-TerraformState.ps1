@@ -14,7 +14,7 @@ $containers = @('tfstate-shared', 'tfstate-dev', 'tfstate-prod')
 $retentionDays = 30
 
 function Invoke-AzureCli {
-    param([string[]]$Arguments)
+    param([string[]]$Arguments, [string]$MissingErrorCode)
 
     # Windows PowerShell can treat redirected native stderr as a PowerShell error.
     $ErrorActionPreference = 'Continue'
@@ -24,13 +24,72 @@ function Invoke-AzureCli {
     if ($exitCode -ne 0) {
         $command = ($Arguments -join ' ') -replace '\s--.*$', ''
         $details = ($result | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+        if ($MissingErrorCode) {
+            $response = $details.TrimStart() -creplace '^ERROR:[\t ]*', ''
+            $errorCode = $null
+            if ($response.StartsWith('{')) {
+                try {
+                    $errorResponse = ConvertFrom-Json -InputObject $response -ErrorAction Stop
+                    $errorCode = if ($null -ne $errorResponse.error) { $errorResponse.error.code } else { $errorResponse.code }
+                } catch {
+                    # Keep the original CLI failure when the error response is malformed.
+                }
+            } elseif ($response -cmatch '^\(([A-Za-z][A-Za-z0-9_.-]*)\)(?=\s|$)') {
+                $errorCode = $Matches[1]
+            } elseif ($response -cmatch '(?m)^[\t ]*Code:[\t ]*([A-Za-z][A-Za-z0-9_.-]*)[\t ]*\r?$') {
+                $errorCode = $Matches[1]
+            }
+            if ($errorCode -is [string] -and $errorCode -ceq $MissingErrorCode) {
+                return
+            }
+        }
         throw "Azure CLI failed: az $command (exit $exitCode).$([Environment]::NewLine)$details"
     }
 
     $json = ($result | Where-Object { $_ -is [string] }) -join [Environment]::NewLine
     if ($json -and $json.Trim() -ne 'null') {
         ConvertFrom-Json -InputObject $json -ErrorAction Stop
+    } elseif ($MissingErrorCode) {
+        throw 'Azure CLI returned no lifecycle policy response. Review the storage account before proceeding.'
     }
+}
+
+function Test-LifecyclePolicyMatch {
+    param($Actual, $Expected)
+
+    if ($Expected -is [pscustomobject]) {
+        if ($Actual -isnot [pscustomobject]) { return $false }
+        $actualProperties = @($Actual.PSObject.Properties | Where-Object { $null -ne $_.Value })
+        if ($actualProperties.Count -ne @($Expected.PSObject.Properties).Count) { return $false }
+        foreach ($property in $Expected.PSObject.Properties) {
+            if (-not (Test-LifecyclePolicyMatch $Actual.($property.Name) $property.Value)) { return $false }
+        }
+        return $true
+    }
+
+    if ($Expected -is [array]) {
+        if ($Actual -isnot [array] -or $Actual.Count -ne $Expected.Count) { return $false }
+        # The policy has one rule, and the filter arrays are unordered.
+        if ($Expected.Count -gt 1) {
+            return $null -eq (Compare-Object $Expected $Actual -CaseSensitive)
+        }
+        return (Test-LifecyclePolicyMatch $Actual[0] $Expected[0])
+    }
+
+    return ($null -ne $Actual -and $Actual -ceq $Expected -and
+        ($Expected -isnot [bool] -or $Actual -is [bool]))
+}
+
+function Get-LifecyclePolicy {
+    param([string[]]$PolicyArgs, $Expected)
+
+    $command = @('storage', 'account', 'management-policy', 'show') + $PolicyArgs
+    $existing = Invoke-AzureCli -Arguments $command -MissingErrorCode 'ManagementPolicyNotFound'
+    if ($null -eq $existing) { return }
+    if (-not (Test-LifecyclePolicyMatch $existing.policy $Expected)) {
+        throw 'The existing Azure Blob lifecycle policy differs from the Terraform state policy. Review it manually before rerunning bootstrap.'
+    }
+    return $existing
 }
 
 $account = Invoke-AzureCli -Arguments @('account', 'show')
@@ -39,7 +98,7 @@ if ($account.name -ne 'Project_M_AI' -or $account.state -ne 'Enabled' -or $accou
 }
 
 $target = "$($account.name)/$resourceGroup/$StorageAccountName ($($containers -join ', '))"
-if (-not $PSCmdlet.ShouldProcess($target, 'Configure Terraform state storage and grant the signed-in user container access')) {
+if (-not $PSCmdlet.ShouldProcess($target, 'Configure Terraform state storage, lifecycle policy, and signed-in user container access')) {
     return
 }
 
@@ -50,6 +109,25 @@ if (-not $principal) {
 
 $subscription = @('--subscription', $account.id)
 $groupArgs = @('--resource-group', $resourceGroup) + $subscription
+$policyArgs = @('--account-name', $StorageAccountName) + $groupArgs
+$policyJson = @{
+    rules = @(
+        @{
+            enabled = $true
+            name = 'expire-previous-terraform-state-versions'
+            type = 'Lifecycle'
+            definition = @{
+                actions = @{ version = @{ delete = @{ daysAfterCreationGreaterThan = 30 } } }
+                filters = @{
+                    blobTypes = @('blockBlob')
+                    prefixMatch = @($containers | ForEach-Object { "$_/" })
+                }
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 10
+$expectedPolicy = ConvertFrom-Json -InputObject $policyJson
+$existingPolicy = $null
 $storage = $null
 $groupExists = Invoke-AzureCli -Arguments (@('group', 'exists', '--name', $resourceGroup) + $subscription)
 if ($groupExists) {
@@ -88,6 +166,7 @@ if ($storage) {
         $storage.enableHttpsTrafficOnly -ne $true -or $storage.minimumTlsVersion -ne 'TLS1_2') {
         throw 'Existing storage account security settings do not match the bootstrap requirements. Review the account before proceeding.'
     }
+    $existingPolicy = Get-LifecyclePolicy -PolicyArgs $policyArgs -Expected $expectedPolicy
 } else {
     $storage = Invoke-AzureCli -Arguments (@(
         'storage', 'account', 'create', '--location', $location, '--sku', 'Standard_LRS',
@@ -147,6 +226,18 @@ foreach ($container in $containers) {
             'role', 'assignment', 'create', '--scope', $scope, '--role', $roleId,
             '--assignee-object-id', $principal, '--assignee-principal-type', 'User'
         ) + $subscription)
+    }
+}
+
+if ($null -eq $existingPolicy -and $null -eq (Get-LifecyclePolicy -PolicyArgs $policyArgs -Expected $expectedPolicy)) {
+    $policyFile = [IO.Path]::GetTempFileName()
+    try {
+        [IO.File]::WriteAllText($policyFile, $policyJson)
+        $null = Invoke-AzureCli -Arguments (@(
+            'storage', 'account', 'management-policy', 'create', '--policy', "@$policyFile"
+        ) + $policyArgs)
+    } finally {
+        Remove-Item -LiteralPath $policyFile
     }
 }
 
