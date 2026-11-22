@@ -10,7 +10,7 @@ terraform {
 
   backend "azurerm" {
     use_azuread_auth = true
-    container_name   = "tfstate"
+    container_name   = "tfstate-dev"
     key              = "dev.tfstate"
   }
 }

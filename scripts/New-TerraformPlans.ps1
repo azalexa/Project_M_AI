@@ -26,7 +26,7 @@ try {
     foreach ($name in @('shared','dev','prod')) {
         $root = if ($name -eq 'shared') { Join-Path $repo 'shared' } else { Join-Path $repo "environments/$name" }
         $plan = Join-Path $planDirectory "$name.tfplan"
-        terraform "-chdir=$root" init -input=false "-backend-config=storage_account_name=$StateAccountName"
+        terraform "-chdir=$root" init -input=false "-backend-config=storage_account_name=$StateAccountName" "-backend-config=use_cli=true"
         if ($LASTEXITCODE) { throw "Terraform init failed for $name." }
         terraform "-chdir=$root" validate -no-color
         if ($LASTEXITCODE) { throw "Terraform validate failed for $name." }

@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $resourceGroup = 'rg-mechmaster-tfstate'
 $location = 'westeurope'
-$container = 'tfstate'
+$containers = @('tfstate-shared', 'tfstate-dev', 'tfstate-prod')
 $retentionDays = 30
 
 function Invoke-AzureCli {
@@ -38,7 +38,7 @@ if ($account.name -ne 'Project_M_AI' -or $account.state -ne 'Enabled' -or $accou
     throw 'Select the enabled Project_M_AI subscription in AzureCloud before running bootstrap.'
 }
 
-$target = "$($account.name)/$resourceGroup/$StorageAccountName/$container"
+$target = "$($account.name)/$resourceGroup/$StorageAccountName ($($containers -join ', '))"
 if (-not $PSCmdlet.ShouldProcess($target, 'Configure Terraform state storage and grant the signed-in user container access')) {
     return
 }
@@ -116,35 +116,38 @@ if (-not $blobService.isVersioningEnabled -or
     ) + $groupArgs)
 }
 
-$containerArgs = @('--storage-account', $StorageAccountName, '--name', $container) + $groupArgs
-$existingContainer = Invoke-AzureCli -Arguments (@(
-    'storage', 'container-rm', 'list', '--storage-account', $StorageAccountName,
-    '--query', "[?name=='$container'] | [0]"
-) + $groupArgs)
-if ($existingContainer) {
-    if ($existingContainer.publicAccess -in @('Blob', 'Container')) {
-        throw 'The existing Terraform state container has a public access policy. Review it before proceeding.'
-    }
-} else {
-    $null = Invoke-AzureCli -Arguments (@(
-        'storage', 'container-rm', 'create', '--public-access', 'off'
-    ) + $containerArgs)
-}
-
-$scope = "$($storage.id)/blobServices/default/containers/$container"
 $roleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' # Storage Blob Data Contributor
-$assignments = Invoke-AzureCli -Arguments (@(
-    'role', 'assignment', 'list', '--all', '--scope', $scope,
-    '--assignee-object-id', $principal, '--fill-principal-name', 'false'
-) + $subscription)
-$matchingAssignment = $assignments | Where-Object {
-    $_.scope -eq $scope -and $_.roleDefinitionId -like "*/$roleId" -and -not $_.condition
-}
-if (-not $matchingAssignment) {
-    $null = Invoke-AzureCli -Arguments (@(
-        'role', 'assignment', 'create', '--scope', $scope, '--role', $roleId,
-        '--assignee-object-id', $principal, '--assignee-principal-type', 'User'
+foreach ($container in $containers) {
+    $containerArgs = @('--storage-account', $StorageAccountName, '--name', $container) + $groupArgs
+    $existingContainer = Invoke-AzureCli -Arguments (@(
+        'storage', 'container-rm', 'list', '--storage-account', $StorageAccountName,
+        '--query', "[?name=='$container'] | [0]"
+    ) + $groupArgs)
+    if (-not $existingContainer) {
+        $null = Invoke-AzureCli -Arguments (@(
+            'storage', 'container-rm', 'create', '--public-access', 'off'
+        ) + $containerArgs)
+    }
+
+    $verifiedContainer = Invoke-AzureCli -Arguments (@('storage', 'container-rm', 'show') + $containerArgs)
+    if ($verifiedContainer.name -ne $container -or $verifiedContainer.publicAccess -notin @($null, 'None', 'Off')) {
+        throw "Could not verify that Terraform state container $container is private. Review it before proceeding."
+    }
+
+    $scope = "$($storage.id)/blobServices/default/containers/$container"
+    $assignments = Invoke-AzureCli -Arguments (@(
+        'role', 'assignment', 'list', '--all', '--scope', $scope,
+        '--assignee-object-id', $principal, '--fill-principal-name', 'false'
     ) + $subscription)
+    $matchingAssignment = $assignments | Where-Object {
+        $_.scope -eq $scope -and $_.roleDefinitionId -like "*/$roleId" -and -not $_.condition
+    }
+    if (-not $matchingAssignment) {
+        $null = Invoke-AzureCli -Arguments (@(
+            'role', 'assignment', 'create', '--scope', $scope, '--role', $roleId,
+            '--assignee-object-id', $principal, '--assignee-principal-type', 'User'
+        ) + $subscription)
+    }
 }
 
-Write-Host "Backend configured: $StorageAccountName/$container. Wait for RBAC propagation before Terraform init."
+Write-Host "Backends configured: $StorageAccountName ($($containers -join ', ')). Wait for RBAC propagation before Terraform init."

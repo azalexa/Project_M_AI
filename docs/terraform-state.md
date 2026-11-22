@@ -6,10 +6,10 @@ Create Azure Storage before the first remote `terraform init`. The bootstrap scr
 
 | Owner | Resources and state |
 | --- | --- |
-| PowerShell bootstrap | `rg-mechmaster-tfstate`, its StorageV2 account, Blob protection settings, the private `tfstate` container, and the bootstrap operator's container-scoped data assignment. |
-| `shared/` | Creates and owns `rg-mechmaster-shared`, `rg-mechmaster-dev`, and `rg-mechmaster-prod` in `shared.tfstate`. It also owns shared services and the state access assignments for approved CI identities. |
-| `environments/dev/` | Owns DEV resources inside `rg-mechmaster-dev` in `dev.tfstate`. |
-| `environments/prod/` | Owns PROD resources inside `rg-mechmaster-prod` in `prod.tfstate`. |
+| PowerShell bootstrap | `rg-mechmaster-tfstate`, its StorageV2 account, Blob protection settings, the private `tfstate-shared`, `tfstate-dev`, and `tfstate-prod` containers, and the bootstrap operator's data role assignment on each container. |
+| `shared/` | Creates and owns `rg-mechmaster-shared`, `rg-mechmaster-dev`, and `rg-mechmaster-prod` in `tfstate-shared/shared.tfstate`. It also owns shared services and the GitHub OIDC identities and their registry and resource group permissions. |
+| `environments/dev/` | Owns DEV resources inside `rg-mechmaster-dev` in `tfstate-dev/dev.tfstate`. |
+| `environments/prod/` | Owns PROD resources inside `rg-mechmaster-prod` in `tfstate-prod/prod.tfstate`. |
 
 Azure management-plane permissions are separate from Blob data-plane permissions. The operator needs Azure management permissions for bootstrap and role assignment writes. Terraform state users need `Storage Blob Data Contributor` at container scope for state operations and locking. Terraform uses a native Azure Blob lease; keep locking enabled, and do not break a lease while a Terraform operation is active. Bootstrap does not write state blobs. [AzureRM backend authentication and locking](https://developer.hashicorp.com/terraform/language/backend/azurerm)
 
@@ -33,19 +33,24 @@ Storage charges depend on data volume and operations. Run the following only aft
 & .\bootstrap\Initialize-TerraformState.ps1 -StorageAccountName $stateAccount
 ```
 
-The script confirms the operation and configures a West Europe StorageV2 Standard LRS account with a private `tfstate` container, HTTPS, minimum TLS 1.2, Blob versioning, and 30-day blob and container soft delete. It verifies encryption at rest and disables anonymous access and Shared Key authentication. New accounts use Microsoft-managed encryption keys. Older versions can increase storage costs. [Azure Storage CLI](https://learn.microsoft.com/en-us/cli/azure/storage/account) · [Blob data protection](https://learn.microsoft.com/en-us/azure/storage/blobs/data-protection-overview)
+The script confirms the operation and configures a West Europe StorageV2 Standard LRS account with three private state containers, HTTPS, minimum TLS 1.2, Blob versioning, and 30-day blob and container soft delete. It verifies encryption at rest and disables anonymous access and Shared Key authentication. New accounts use Microsoft-managed encryption keys. Older versions can increase storage costs. [Azure Storage CLI](https://learn.microsoft.com/en-us/cli/azure/storage/account) · [Blob data protection](https://learn.microsoft.com/en-us/azure/storage/blobs/data-protection-overview)
 
-On retry, the script accepts only a compatible account with the `workload=mechmaster-tfstate` tag. It validates existing account settings, preserves longer retention periods, and creates the container through Azure Resource Manager only when missing. It grants the signed-in user `Storage Blob Data Contributor` at container scope. All three state keys share the same container access boundary. The Blob endpoint can be reachable over a public network. Data access requires Entra authentication and Azure RBAC. [AzureRM backend](https://developer.hashicorp.com/terraform/language/backend/azurerm) · [Azure RBAC](https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-cli)
+On retry, the script accepts only a compatible account with the `workload=mechmaster-tfstate` tag. It validates existing account settings, preserves longer retention periods, creates missing containers through Azure Resource Manager, and verifies that each container is private. It assigns `Storage Blob Data Contributor` to the signed-in user separately at each container scope and reuses existing matching assignments. Pipeline access requires separate authorization. Scope each approved pipeline identity to its own environment container and review inherited grants at the storage account and higher scopes. The Blob endpoint can be reachable over a public network. Data access requires Entra authentication and Azure RBAC. [AzureRM backend](https://developer.hashicorp.com/terraform/language/backend/azurerm) · [Azure RBAC](https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-cli)
 
 ## Verify access and initialize the backends
 
 After RBAC propagates, confirm Entra data access:
 
 ```powershell
-az storage blob list --account-name $stateAccount --container-name tfstate --auth-mode login --output table
+foreach ($container in @('tfstate-shared', 'tfstate-dev', 'tfstate-prod')) {
+    az storage blob list --account-name $stateAccount --container-name $container --auth-mode login --output table
+    if ($LASTEXITCODE -ne 0) { throw "Could not list blobs in $container." }
+}
 ```
 
-Check for existing state, including the legacy `*.terraform.tfstate` keys. Review and obtain explicit approval for a separate migration if an old key already contains state.
+Before initializing a new backend, check the old `tfstate` container for existing state under the current keys and any legacy `*.terraform.tfstate` keys. If a root already has state there, pause Terraform operations for that root and arrange a separately approved migration. Preserve a backup, verify the destination and its permissions, and confirm that the migrated state contains the expected resources before planning. With the old backend initialized locally and verified, `terraform init -migrate-state` can copy state to the new backend. Keep the source state until migration verification is complete. [Terraform init migration options](https://developer.hashicorp.com/terraform/cli/commands/init)
+
+For a fresh backend, pass `storage_account_name` and `use_cli=true` to `terraform init`. The signed-in Azure CLI session supplies the Entra tenant. Each root sets `container_name`, `key`, and `use_azuread_auth = true` in `versions.tf`. [AzureRM backend authentication](https://developer.hashicorp.com/terraform/language/backend/azurerm)
 
 ```powershell
 foreach ($root in @('shared', 'environments/dev', 'environments/prod')) {

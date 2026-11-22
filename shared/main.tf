@@ -88,14 +88,6 @@ output "github_client_ids" {
   value = { for env, identity in azurerm_user_assigned_identity.pipeline : env => identity.client_id }
 }
 
-resource "azurerm_role_assignment" "pipeline_state" {
-  for_each             = var.github_state_read_enabled ? azurerm_user_assigned_identity.pipeline : {}
-  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/rg-mechmaster-tfstate/providers/Microsoft.Storage/storageAccounts/${var.state_account_name}/blobServices/default/containers/tfstate"
-  role_definition_name = "Storage Blob Data Reader"
-  principal_id         = each.value.principal_id
-  principal_type       = "ServicePrincipal"
-}
-
 resource "azurerm_role_assignment" "pipeline_registry_reader" {
   for_each             = azurerm_user_assigned_identity.pipeline
   scope                = azurerm_container_registry.shared.id
