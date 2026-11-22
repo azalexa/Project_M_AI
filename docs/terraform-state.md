@@ -37,6 +37,14 @@ The script confirms the operation and configures a West Europe StorageV2 Standar
 
 On retry, the script accepts only a compatible account with the `workload=mechmaster-tfstate` tag. It validates existing account settings, preserves longer retention periods, creates missing containers through Azure Resource Manager, and verifies that each container is private. It assigns `Storage Blob Data Contributor` to the signed-in user separately at each container scope and reuses existing matching assignments. Pipeline access requires separate authorization. Scope each approved pipeline identity to its own environment container and review inherited grants at the storage account and higher scopes. The Blob endpoint can be reachable over a public network. Data access requires Entra authentication and Azure RBAC. [AzureRM backend](https://developer.hashicorp.com/terraform/language/backend/azurerm) · [Azure RBAC](https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-cli)
 
+## Previous state versions
+
+The bootstrap operator needs `Microsoft.Storage/storageAccounts/managementPolicies/read` and `Microsoft.Storage/storageAccounts/managementPolicies/write` on the storage account. Bootstrap creates an account-level lifecycle policy when none exists and leaves a matching policy in place. If a different policy exists, bootstrap stops for manual review. Coordinate policy changes with other storage administrators because the Azure CLI create operation can also replace an existing policy. Use `-WhatIf` to preview the operation without evaluating or writing the policy. [Azure CLI management policy commands](https://learn.microsoft.com/en-us/cli/azure/storage/account/management-policy)
+
+The policy uses `version.delete` for block blobs under `tfstate-shared/`, `tfstate-dev/`, and `tfstate-prod/`. It applies only to previous versions older than 30 days from version creation. The current state blob and snapshots are outside the delete action. Azure processes the policy asynchronously. [Lifecycle deletion rules](https://learn.microsoft.com/en-us/azure/storage/blobs/lifecycle-management-policy-delete)
+
+Blob soft delete retains each expired version for at least 30 more days from the lifecycle deletion, or longer if the account has a longer retention period. A version eligible for deletion just after day 30 can therefore remain recoverable and billable for roughly 60 days from creation, with additional time if it becomes a previous version later or Azure processes the rule later. Soft-deleted data is billed at its existing storage tier until permanent deletion. [Blob soft delete and billing](https://learn.microsoft.com/en-us/azure/storage/blobs/soft-delete-blob-overview)
+
 ## Verify access and initialize the backends
 
 After RBAC propagates, confirm Entra data access:
