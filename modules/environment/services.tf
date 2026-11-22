@@ -164,12 +164,12 @@ resource "azurerm_container_app" "api" {
 
 output "deployment" {
   value = {
-    api_url        = "https://${azurerm_container_app.api.ingress[0].fqdn}"
-    postgres_host  = azurerm_postgresql_flexible_server.database.fqdn
-    postgres_name  = azurerm_postgresql_flexible_server.database.name
-    frontend_host  = azurerm_static_web_app.frontend.default_host_name
-    storage_name   = azurerm_storage_account.files.name
-    identity_name  = azurerm_user_assigned_identity.app.name
-    identity_id    = azurerm_user_assigned_identity.app.principal_id
+    api_url       = "https://${azurerm_container_app.api.ingress[0].fqdn}"
+    postgres_host = azurerm_postgresql_flexible_server.database.fqdn
+    postgres_name = azurerm_postgresql_flexible_server.database.name
+    frontend_host = azurerm_static_web_app.frontend.default_host_name
+    storage_name  = azurerm_storage_account.files.name
+    identity_name = azurerm_user_assigned_identity.app.name
+    identity_id   = azurerm_user_assigned_identity.app.principal_id
   }
 }
