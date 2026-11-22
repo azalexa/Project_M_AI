@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -10,6 +11,7 @@ permissions:
 
 jobs:
   verify-checkout:
+    name: Verify checkout
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -20,3 +22,43 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git log -1 --format=fuller
+
+  terraform-format:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.2
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+
+  terraform-validate:
+    name: Validate ${{ matrix.directory }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - shared
+          - environments/dev
+          - environments/prod
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.2
+
+      - name: Initialize Terraform
+        working-directory: ${{ matrix.directory }}
+        run: terraform init -backend=false -input=false
+
+      - name: Validate Terraform
+        working-directory: ${{ matrix.directory }}
+        run: terraform validate -no-color
