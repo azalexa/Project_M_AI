@@ -26,12 +26,6 @@ variable "github_oidc_subjects" {
   }
 }
 
-variable "github_state_read_enabled" {
-  type        = bool
-  default     = false
-  description = "Allow GitHub speculative plans to read every state in the shared container."
-}
-
 variable "state_account_name" {
   type        = string
   description = "Name of the bootstrapped Terraform Storage account."
