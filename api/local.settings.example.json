@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "EXTERNAL_TENANT_ID": "970b447f-8b34-437d-b665-1f05f66a1cd1",
+    "EXTERNAL_TENANT_NAME": "mechmastercustomers",
+    "API_CLIENT_ID": "UZUPELNIJ_PO_REJESTRACJI_API",
+    "API_SCOPE_NAME": "access_as_user",
+    "TABLE_STORAGE_URL": "https://stmmtdevb80b98b57ede.table.core.windows.net"
+  }
+}

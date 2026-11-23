@@ -1,15 +1,83 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MechMaster deployment check</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <main>
-      <h1>MechMaster</h1>
-      <p>The static frontend is responding.</p>
-    </main>
-  </body>
-</html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a32">
+  <meta name="description" content="MechMaster — opisz swoją usterkę albo zaoferuj pomoc. Znajdź osoby od samochodów, hydrauliki, elektryki i napraw domowych.">
+  <title>MechMaster — Pomoc w naprawach, blisko Ciebie</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
+  <script src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js" integrity="sha384-PARf28kmic36Ve+O3DnUerRXFtOQ7ZDqRDGpLcbljly5/N39T2OV3kt3QsWOKeAX" crossorigin="anonymous" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#ogloszenia">Przejdź do ogłoszeń</a>
+  <header class="topbar">
+    <div class="shell nav-inner">
+      <a href="#start" class="brand" aria-label="MechMaster, strona główna">
+        <span class="brand-symbol"><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M13 12 22 7l9 5v20l-9 5-9-5V12Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="m16 27 6-12 6 12m-10-4h8" stroke="currentColor" fill="none" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>Mech<span class="brand-secondary">Master</span><small>pomoc w każdej usterce</small></span>
+      </a>
+      <nav class="nav-links" aria-label="Menu główne"><a href="#ogloszenia">Ogłoszenia</a><a href="#kategorie">Kategorie</a><a href="#jak-to-dziala">Jak to działa</a></nav>
+      <div class="nav-actions">
+        <button class="quiet-btn" id="accountBtn" type="button"><span id="accountBtnText">Zaloguj się</span></button>
+        <button class="button button-main button-small" type="button" data-new>+ Dodaj ogłoszenie</button>
+        <button class="mobile-menu" id="mobileMenuBtn" type="button" aria-label="Otwórz menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+    <nav class="mobile-links" id="mobileLinks" hidden aria-label="Menu mobilne"><a href="#ogloszenia">Ogłoszenia</a><a href="#kategorie">Kategorie</a><a href="#jak-to-dziala">Jak to działa</a><button id="mobileLogin" type="button">Moje konto</button></nav>
+  </header>
+  <div class="mode-note" id="modeNote" role="status" hidden><span class="shell" id="modeNoteText"></span></div>
+  <main id="start">
+    <section class="hero">
+      <div class="shell hero-layout">
+        <div class="hero-copy">
+          <span class="eyebrow"><span class="dot"></span> JEDNO MIEJSCE. TYSIĄCE ROZWIĄZAŃ.</span>
+          <h1>Coś się zepsuło?<br><span>Znajdź kogoś,</span><br>kto pomoże.</h1>
+          <p>Auto nie odpala? Kran przecieka? A może potrafisz naprawiać i chcesz pomagać innym? Tu spotykają się osoby z problemem i osoby z rozwiązaniem.</p>
+          <div class="hero-actions"><button class="button button-main button-large" type="button" data-new>Opisz swoją usterkę <span aria-hidden="true">↗</span></button><button class="button button-outline button-large" id="goListings" type="button">Przeglądaj ogłoszenia <span aria-hidden="true">↓</span></button></div>
+          <div class="hero-trust"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg> Różne rodzaje usterek</span><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg> Kontakt przez odpowiedzi</span></div>
+        </div>
+        <div class="hero-graphic" aria-label="Przykłady usterek i pomocy">
+          <div class="graphic-background"><span class="graphic-orbit orbit-one"></span><span class="graphic-orbit orbit-two"></span><div class="graphic-spark spark-one">✳</div><div class="graphic-spark spark-two">✦</div></div>
+          <article class="float-panel panel-big"><div class="panel-top"><span class="panel-tag panel-tag-coral">SZUKAM POMOCY</span><span>Teraz</span></div><div class="panel-mid"><span class="panel-emoji">🚗</span><div><h3>Auto nie chce odpalić</h3><p>Potrzebuję pomocy z diagnozą usterki.</p></div></div><div class="panel-bottom"><span>📍 Szczecin</span><span class="bubble-people"><i>A</i><i>M</i><i>+3</i></span></div></article>
+          <article class="float-panel panel-helper"><span class="helper-icon">🔧</span><div><span class="panel-tag panel-tag-green">OFERUJĘ POMOC</span><h3>Naprawy hydrauliczne</h3><p>Kran, syfon, drobne usterki</p></div><span class="mini-check">✓</span></article>
+          <div class="float-notification"><span class="notify-icon">✉</span><div><strong>Nowa odpowiedź</strong><small>Ktoś chce pomóc!</small></div></div>
+          <span class="graphic-foot">MECHMASTER / SPOŁECZNOŚĆ</span>
+        </div>
+      </div>
+      <div class="hero-wave"></div>
+    </section>
+
+    <section class="quick-search shell" aria-label="Wyszukiwarka ogłoszeń"><div class="quick-search-inner"><div class="search-field"><span class="search-icon">⌕</span><input type="search" id="heroSearch" placeholder="Czego szukasz? np. mechanik, cieknący kran..." aria-label="Szukaj ogłoszeń"></div><div class="quick-divider"></div><div class="city-field"><span>⌖</span><input type="search" id="heroCity" placeholder="Miasto, np. Szczecin" aria-label="Filtruj po mieście"></div><button type="button" id="heroSearchButton" class="button button-main quick-submit">Szukaj ogłoszeń <span aria-hidden="true">→</span></button></div></section>
+
+    <section class="section categories-section shell" id="kategorie"><div class="section-heading"><div><span class="section-label">ZNAJDŹ ODPOWIEDNIĄ POMOC</span><h2>W czym potrzebujesz wsparcia?</h2><p>Od samochodów po codzienne naprawy. Wybierz kategorię i sprawdź ogłoszenia.</p></div></div><div class="category-grid" id="categoryGrid">
+      <button type="button" data-category="Motoryzacja" class="category-tile"><span class="category-emoji cat-auto">🚗</span><strong>Motoryzacja</strong><small>Auta, motocykle</small><span class="cat-arrow">↗</span></button>
+      <button type="button" data-category="Hydraulika" class="category-tile"><span class="category-emoji cat-water">🚰</span><strong>Hydraulika</strong><small>Krany, rury, odpływy</small><span class="cat-arrow">↗</span></button>
+      <button type="button" data-category="Elektryka" class="category-tile"><span class="category-emoji cat-electric">⚡</span><strong>Elektryka</strong><small>Gniazdka, oświetlenie</small><span class="cat-arrow">↗</span></button>
+      <button type="button" data-category="AGD" class="category-tile"><span class="category-emoji cat-appliance">🧺</span><strong>Sprzęt AGD</strong><small>Pralki, lodówki</small><span class="cat-arrow">↗</span></button>
+      <button type="button" data-category="Dom i ogród" class="category-tile"><span class="category-emoji cat-home">🏠</span><strong>Dom i ogród</strong><small>Naprawy i montaż</small><span class="cat-arrow">↗</span></button>
+      <button type="button" data-category="Komputery" class="category-tile"><span class="category-emoji cat-tech">💻</span><strong>Komputery</strong><small>IT, telefony, sieć</small><span class="cat-arrow">↗</span></button>
+    </div></section>
+
+    <section class="listings-section" id="ogloszenia"><div class="shell"><div class="section-heading listing-heading"><div><span class="section-label">TABLICA OGŁOSZEŃ</span><h2>Znajdź problem. Zaproponuj rozwiązanie.</h2><p>Przeglądaj zgłoszenia osób szukających pomocy i oferty lokalnych fachowców.</p></div><button class="button button-outline" type="button" data-new>+ Dodaj ogłoszenie</button></div>
+      <div class="feed-tabs" role="tablist" aria-label="Rodzaj ogłoszeń"><button role="tab" aria-selected="true" class="feed-tab active" data-kind="all">Wszystkie</button><button role="tab" aria-selected="false" class="feed-tab" data-kind="need">Potrzebuję pomocy</button><button role="tab" aria-selected="false" class="feed-tab" data-kind="offer">Oferuję pomoc</button><button role="tab" aria-selected="false" class="feed-tab" data-kind="mine" id="mineTab">Moje ogłoszenia</button></div>
+      <div class="listings-toolbar"><label> Kategoria <select id="categorySelect"><option value="all">Wszystkie kategorie</option><option>Motoryzacja</option><option>Hydraulika</option><option>Elektryka</option><option>AGD</option><option>Dom i ogród</option><option>Komputery</option><option>Inne</option></select></label><label class="toolbar-search">Szukaj <input id="feedSearch" type="search" placeholder="Wpisz słowo kluczowe..."></label><button type="button" class="clear-button" id="resetFilters">Wyczyść filtry ↺</button><span class="results-count" id="resultsCount"></span></div>
+      <div class="listing-grid" id="listingGrid" aria-live="polite"></div><div class="empty-state" id="emptyState" hidden><div>⌕</div><h3>Brak ogłoszeń spełniających kryteria</h3><p>Spróbuj zmienić kategorię albo wyszukiwaną frazę.</p><button type="button" class="button button-outline" id="emptyReset">Wyczyść filtry</button></div>
+    </div></section>
+
+    <section class="how-section shell" id="jak-to-dziala"><div class="how-header"><span class="section-label">TO PROSTE</span><h2>Jak działa MechMaster?</h2><p>Trzy kroki od usterki do znalezienia pomocy.</p></div><div class="how-grid"><article class="how-step"><div class="how-number">01</div><span class="how-icon">✍️</span><h3>Opisz problem</h3><p>Dodaj ogłoszenie. Napisz, co się zepsuło, i podaj miasto.</p></article><article class="how-step"><div class="how-number">02</div><span class="how-icon">💬</span><h3>Odbierz odpowiedzi</h3><p>Osoby, które potrafią pomóc, mogą przesłać Ci propozycję.</p></article><article class="how-step"><div class="how-number">03</div><span class="how-icon">🤝</span><h3>Dogadajcie szczegóły</h3><p>Przejrzyj odpowiedzi i zdecyduj, z kim chcesz współpracować.</p></article></div></section>
+
+    <section class="join-section"><div class="shell join-inner"><div><span class="join-kicker">MASZ DOŚWIADCZENIE W NAPRAWACH?</span><h2>Twoje umiejętności<br>mogą komuś pomóc.</h2><p>Dodaj ofertę usług albo odpowiedz na zgłoszenie. Każda usterka to szansa na rozwiązanie.</p><button type="button" class="button button-white button-large" data-new-offer>Dodaj ofertę pomocy ↗</button></div><div class="join-art" aria-hidden="true"><div class="join-gear">✳</div><span>UMIESZ NAPRAWIAĆ?<br>POKAŻ SIĘ INNYM.</span></div></div></section>
+  </main>
+  <footer class="footer"><div class="shell footer-row"><div class="brand brand-bottom"><span class="brand-symbol">M</span><span>Mech<span class="brand-secondary">Master</span><small>pomoc w każdej usterce</small></span></div><span>Łączymy osoby, które potrzebują pomocy, z osobami, które ją oferują.</span><small>© <span id="year"></span> MechMaster</small></div></footer>
+
+  <dialog id="postDialog" class="dialog dialog-post" aria-labelledby="postDialogTitle"><form id="postForm" novalidate><div class="dialog-heading"><div><span class="section-label">TWOJE OGŁOSZENIE</span><h2 id="postDialogTitle">Dodaj ogłoszenie</h2><p>Opisz dokładnie problem lub usługę, którą oferujesz.</p></div><button type="button" class="x-button" data-close aria-label="Zamknij">×</button></div><div class="type-selector"><label><input type="radio" name="kind" value="need" checked><span><strong>🛠️ Potrzebuję pomocy</strong><small>Mam usterkę do rozwiązania</small></span></label><label><input type="radio" name="kind" value="offer"><span><strong>🤝 Oferuję pomoc</strong><small>Umiem coś naprawić</small></span></label></div><div class="form-row"><label>Tytuł ogłoszenia <span class="required">*</span><input type="text" name="title" required minlength="8" maxlength="110" placeholder="np. Cieknący kran w kuchni"></label></div><div class="form-row two-columns"><label>Kategoria <span class="required">*</span><select name="category" required><option value="">Wybierz kategorię</option><option>Motoryzacja</option><option>Hydraulika</option><option>Elektryka</option><option>AGD</option><option>Dom i ogród</option><option>Komputery</option><option>Inne</option></select></label><label>Miasto <span class="required">*</span><input type="text" name="city" maxlength="80" required placeholder="np. Szczecin"></label></div><div class="form-row"><label>Opis <span class="required">*</span><textarea name="description" required minlength="20" maxlength="2500" rows="6" placeholder="Napisz, co dokładnie się dzieje, od kiedy występuje problem i jakiej pomocy potrzebujesz..."></textarea></label><small>Nie podawaj w ogłoszeniu numeru telefonu, pełnego adresu ani innych danych wrażliwych.</small></div><div class="form-row two-columns"><label>Budżet lub stawka <span class="optional">opcjonalne</span><input type="text" name="budget" maxlength="70" placeholder="np. do 300 zł / do ustalenia"></label><label>Termin <span class="optional">opcjonalne</span><select name="urgency"><option value="Do ustalenia">Do ustalenia</option><option value="Pilne">Pilne</option><option value="W tym tygodniu">W tym tygodniu</option><option value="Elastycznie">Elastycznie</option></select></label></div><div class="dialog-actions"><button type="button" class="button button-outline" data-close>Anuluj</button><button type="submit" class="button button-main" id="publishBtn">Opublikuj ogłoszenie ↗</button></div></form></dialog>
+
+  <dialog id="detailsDialog" class="dialog dialog-details" aria-labelledby="detailsTitle"><div class="detail-head"><button class="x-button detail-close" type="button" data-close aria-label="Zamknij">×</button><div id="detailsContent"></div></div><div id="responsesArea" class="responses-area"></div></dialog>
+
+  <dialog id="accountDialog" class="dialog dialog-account" aria-labelledby="accountTitle"><div class="dialog-heading"><div><span class="section-label">TWOJE KONTO</span><h2 id="accountTitle">MechMaster</h2></div><button type="button" class="x-button" data-close aria-label="Zamknij">×</button></div><div id="accountContent"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body></html>
