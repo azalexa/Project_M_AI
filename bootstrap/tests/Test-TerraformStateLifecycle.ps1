@@ -2,7 +2,7 @@
 
 $ErrorActionPreference = 'Stop'
 $bootstrap = Join-Path (Split-Path $PSScriptRoot -Parent) 'Initialize-TerraformState.ps1'
-$testState = @{ Policy = $null; ErrorResponse = $null; Calls = @(); Creates = 0 }
+$testState = @{ GroupLocation = 'northeurope'; Policy = $null; ErrorResponse = $null; Calls = @(); Creates = 0 }
 
 function az {
     $global:LASTEXITCODE = 0
@@ -13,9 +13,9 @@ function az {
         'account show' { '{"name":"Project_M_AI","state":"Enabled","environmentName":"AzureCloud","id":"test-subscription"}' }
         'ad signed-in-user show' { '"test-user"' }
         'group exists' { 'true' }
-        'group show' { '{"location":"westeurope"}' }
+        'group show' { @{ location = $testState.GroupLocation } | ConvertTo-Json }
         'storage account list' {
-            '{"id":"/storage/test","kind":"StorageV2","sku":{"name":"Standard_LRS"},"location":"westeurope","tags":{"workload":"mechmaster-tfstate"},"allowBlobPublicAccess":false,"allowSharedKeyAccess":false,"enableHttpsTrafficOnly":true,"minimumTlsVersion":"TLS1_2","encryption":{"services":{"blob":{"enabled":true}}}}'
+            '{"id":"/storage/test","kind":"StorageV2","sku":{"name":"Standard_LRS"},"location":"northeurope","tags":{"workload":"mechmaster-tfstate"},"allowBlobPublicAccess":false,"allowSharedKeyAccess":false,"enableHttpsTrafficOnly":true,"minimumTlsVersion":"TLS1_2","encryption":{"services":{"blob":{"enabled":true}}}}'
         }
         'storage account blob-service-properties show' {
             '{"isVersioningEnabled":true,"deleteRetentionPolicy":{"enabled":true,"days":30},"containerDeleteRetentionPolicy":{"enabled":true,"days":30}}'
@@ -68,6 +68,19 @@ function Assert-BootstrapFailure([string]$ExpectedMessage) {
 & $bootstrap -StorageAccountName testmechmasterstate -WhatIf
 Assert-Equal ($testState.Calls -join ',') 'account show' 'WhatIf must only read subscription context.'
 Write-Host 'PASS: WhatIf makes no Azure writes.'
+
+$testState.Calls = @()
+$testState.GroupLocation = 'westeurope'
+try {
+    & $bootstrap -StorageAccountName testmechmasterstate -Confirm:$false
+    throw 'Bootstrap unexpectedly accepted a resource group in the wrong region.'
+} catch {
+    Assert-Equal $_.Exception.Message "Existing resource group rg-mechmaster-tfstate is in 'westeurope'. Bootstrap requires 'northeurope'." 'Unexpected resource group location error.'
+} finally {
+    $testState.GroupLocation = 'northeurope'
+}
+Assert-Equal ($testState.Calls -join ',') 'account show,ad signed-in-user show,group exists,group show' 'Bootstrap must stop before checking or changing storage.'
+Write-Host 'PASS: Bootstrap rejects a resource group outside North Europe.'
 
 $missingResponses = [ordered]@{
     'Bare parenthesized code' = '(ManagementPolicyNotFound) Test response.'

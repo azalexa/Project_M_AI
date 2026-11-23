@@ -7,7 +7,7 @@ locals {
 resource "azurerm_resource_group" "project" {
   for_each = toset(["shared", "dev", "prod"])
   name     = "rg-mechmaster-${each.key}"
-  location = "westeurope"
+  location = "northeurope"
   tags     = { project = "mechmaster", environment = each.key, managedBy = "terraform" }
 }
 

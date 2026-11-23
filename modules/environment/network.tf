@@ -1,7 +1,7 @@
 data "azurerm_client_config" "current" {}
 
 locals {
-  location            = "westeurope"
+  location            = "northeurope"
   resource_group_name = "rg-mechmaster-${var.environment}"
   name                = "mechmaster-${var.environment}"
   suffix              = substr(sha256(data.azurerm_client_config.current.subscription_id), 0, 12)

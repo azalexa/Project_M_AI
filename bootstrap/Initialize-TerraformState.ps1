@@ -9,7 +9,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $resourceGroup = 'rg-mechmaster-tfstate'
-$location = 'westeurope'
+$location = 'northeurope'
 $containers = @('tfstate-shared', 'tfstate-dev', 'tfstate-prod')
 $retentionDays = 30
 
@@ -133,7 +133,7 @@ $groupExists = Invoke-AzureCli -Arguments (@('group', 'exists', '--name', $resou
 if ($groupExists) {
     $group = Invoke-AzureCli -Arguments (@('group', 'show', '--name', $resourceGroup) + $subscription)
     if ($group.location -ne $location) {
-        throw "Existing resource group $resourceGroup is outside $location."
+        throw "Existing resource group $resourceGroup is in '$($group.location)'. Bootstrap requires '$location'."
     }
     $storage = Invoke-AzureCli -Arguments (@('storage', 'account', 'list', '--query', "[?name=='$StorageAccountName'] | [0]") + $groupArgs)
 }

@@ -44,7 +44,7 @@ foreach ($namespace in $types.Keys) {
     }
 }
 
-az postgres flexible-server list-skus --location westeurope --output table
-if ($LASTEXITCODE) { throw 'Cannot list PostgreSQL SKUs for West Europe.' }
-az containerapp env workload-profile list-supported --location westeurope --output table
-if ($LASTEXITCODE) { throw 'Cannot list Container Apps workload profiles for West Europe.' }
+az postgres flexible-server list-skus --location northeurope --output table
+if ($LASTEXITCODE) { throw 'Cannot list PostgreSQL SKUs for North Europe.' }
+az containerapp env workload-profile list-supported --location northeurope --output table
+if ($LASTEXITCODE) { throw 'Cannot list Container Apps workload profiles for North Europe.' }
