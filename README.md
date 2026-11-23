@@ -55,26 +55,6 @@ The UI also included representative example listings for demonstration purposes.
 
 The solution separated the public website, customer identity, application logic, and stored data.
 
-```mermaid
-flowchart TD
-    U[Visitor or registered user]
-    W[Static frontend<br/>HTML, CSS, JavaScript]
-    I[Microsoft Entra External ID<br/>Registration and sign-in]
-    A[Azure Functions<br/>Node.js REST API]
-    T[Azure Table Storage<br/>Listings, responses, messages]
-    G[GitHub repository]
-    P[Azure Pipelines]
-    S[Azure Storage Static Website]
-
-    U --> W
-    W <-->|Identity and access tokens| I
-    W -->|API requests with access token| A
-    A -->|Managed Identity and RBAC| T
-    G --> P
-    P -->|Publish static files| S
-    S -->|Serves| W
-```
-
 ### Why these services?
 
 | Layer | Service or technology | Responsibility |
