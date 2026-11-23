@@ -75,6 +75,7 @@ resource "azurerm_role_assignment" "vault" {
 }
 
 resource "azurerm_static_web_app" "frontend" {
+  count               = var.environment == "prod" ? 1 : 0
   name                = "swa-${local.name}-${local.suffix}"
   resource_group_name = local.resource_group_name
   location            = "westeurope"
@@ -83,6 +84,11 @@ resource "azurerm_static_web_app" "frontend" {
   tags                = local.tags
 }
 
+resource "azurerm_storage_account_static_website" "frontend" {
+  count              = var.environment == "dev" ? 1 : 0
+  storage_account_id = azurerm_storage_account.files.id
+  index_document     = "index.html"
+}
 resource "azurerm_container_app_environment" "apps" {
   name                       = "cae-${local.name}"
   location                   = local.location
@@ -167,7 +173,7 @@ output "deployment" {
     api_url       = "https://${azurerm_container_app.api.ingress[0].fqdn}"
     postgres_host = azurerm_postgresql_flexible_server.database.fqdn
     postgres_name = azurerm_postgresql_flexible_server.database.name
-    frontend_host = azurerm_static_web_app.frontend.default_host_name
+    frontend_host = var.environment == "dev" ? azurerm_storage_account.files.primary_web_host : azurerm_static_web_app.frontend[0].default_host_name
     storage_name  = azurerm_storage_account.files.name
     identity_name = azurerm_user_assigned_identity.app.name
     identity_id   = azurerm_user_assigned_identity.app.principal_id
