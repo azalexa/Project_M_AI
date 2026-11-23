@@ -33,6 +33,10 @@ resource "azurerm_postgresql_flexible_server_active_directory_administrator" "ad
   object_id           = var.database_admin.object_id
   principal_name      = var.database_admin.principal_name
   principal_type      = var.database_admin.principal_type
+
+  lifecycle {
+    ignore_changes = [principal_name]
+  }
 }
 
 resource "azurerm_postgresql_flexible_server_configuration" "extensions" {

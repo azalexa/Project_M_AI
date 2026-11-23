@@ -77,7 +77,7 @@ resource "azurerm_role_assignment" "vault" {
 resource "azurerm_static_web_app" "frontend" {
   name                = "swa-${local.name}-${local.suffix}"
   resource_group_name = local.resource_group_name
-  location            = local.location
+  location            = "westeurope"
   sku_tier            = var.static_site_sku
   sku_size            = var.static_site_sku
   tags                = local.tags
