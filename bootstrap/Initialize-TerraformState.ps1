@@ -215,7 +215,7 @@ foreach ($container in $containers) {
 
     $scope = "$($storage.id)/blobServices/default/containers/$container"
     $assignments = Invoke-AzureCli -Arguments (@(
-        'role', 'assignment', 'list', '--all', '--scope', $scope,
+        'role', 'assignment', 'list', '--scope', $scope,
         '--assignee-object-id', $principal, '--fill-principal-name', 'false'
     ) + $subscription)
     $matchingAssignment = $assignments | Where-Object {
