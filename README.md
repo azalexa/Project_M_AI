@@ -2,7 +2,7 @@
 
 **Prototyp platformy ogłoszeń o usterkach i usługach naprawczych, zbudowany w oparciu o Microsoft Azure.**
 
-> **Status projektu: archiwalny / infrastruktura w trakcie wycofywania (23 listopada 2026 r.).** Repozytorium dokumentuje zrealizowany prototyp i proces jego budowy. Nie należy zakładać, że dawny adres strony, API lub logowanie nadal działają. Ostatni przegląd zasobów wykazał pozostałą sieć wirtualną i środowisko Container Apps; ich ostateczne usunięcie nie zostało potwierdzone.
+> **Status projektu: archiwalny / infrastruktura w trakcie wycofywania (23 listopada 2026 r.).** Repozytorium dokumentuje zrealizowany prototyp i proces jego budowy. Nie należy zakładać, że dawny adres strony, API lub logowanie nadal działają.
 
 ## Cel projektu
 
