@@ -1,5 +1,8 @@
+trigger:
+  branches:
+    include:
+      - main
 
-trigger: none
 pr: none
 
 pool:
@@ -9,19 +12,27 @@ steps:
   - checkout: self
 
   - task: AzureCLI@2
-    displayName: 'test Azure'
+    displayName: 'Deploy MechMaster frontend'
     inputs:
       azureSubscription: 'sc-project-m-ai-dev'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
-        echo "subskrypcje:"
-        az account show --query "name" -o tsv
+        set -euo pipefail
 
-        echo "Resource Group:"
-        az group show \
-          --name rg-project-m-ai-dev \
-          --query "{name:name, location:location}" \
-          -o table
+        echo "Checking Azure connection"
+        az account show --output table
 
-        echo "azure connection works"
+        echo "Checking frontend files"
+        test -f "$(Build.SourcesDirectory)/frontend/index.html"
+
+        echo "Deploying frontend"
+        az storage blob upload-batch \
+          --account-name "stmmtdevb80b98b57ede" \
+          --destination '$web' \
+          --source "$(Build.SourcesDirectory)/frontend" \
+          --auth-mode login \
+          --overwrite true \
+          --output table
+
+        echo "Deployment completed"
