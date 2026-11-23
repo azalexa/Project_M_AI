@@ -62,7 +62,7 @@ resource "azurerm_key_vault" "environment" {
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
   rbac_authorization_enabled = true
-  purge_protection_enabled   = true
+  purge_protection_enabled   = var.environment == "prod"
   soft_delete_retention_days = 7
   tags                       = local.tags
 }
