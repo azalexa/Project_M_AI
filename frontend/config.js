@@ -5,7 +5,8 @@ window.MECHMASTER_CONFIG = Object.freeze({
   authority: 'https://mechmastercustomers.ciamlogin.com/970b447f-8b34-437d-b665-1f05f66a1cd1/',
   redirectUri: 'https://stmmtdevb80b98b57ede.z16.web.core.windows.net/',
   // Po wdrozeniu Azure Functions: np. https://func-mechmaster-api.azurewebsites.net/api
-  apiBaseUrl: '',
+  apiBaseUrl: 'https://func-mm-api-b80b98b57ede.azurewebsites.net/api',
   // Po rejestracji chronionego API: np. api://<API_APP_CLIENT_ID>/access_as_user
-  apiScope: ''
+  apiScope: 'api://c6f6c777-549f-43b5-a87a-fc4ed1eaf4aa/access_as_user'
 });
+

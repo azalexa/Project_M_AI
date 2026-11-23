@@ -11,6 +11,7 @@ function route(handler){return async (request,context)=>{
   context.error(e);return result(500,{error:'Wystąpił błąd serwera. Spróbuj ponownie później.'});
  }
 }}
+app.http('health',{methods:['GET'],authLevel:'anonymous',route:'health',handler:route(async()=>result(200,{status:'ok',service:'mechmaster-api'}))});
 async function requestData(req){const len=Number(req.headers.get('content-length')||'0');if(len>16000)throw new HttpError(413,'Zbyt duże zgłoszenie.');try{return await req.json()}catch{throw new HttpError(400,'Nieprawidłowe dane JSON.')}}
 app.http('postsList',{methods:['GET'],authLevel:'anonymous',route:'posts',handler:route(async()=>{
  const data=[];let seen=0;

@@ -17,7 +17,7 @@ test('API: ogloszenia, odpowiedzi, prywatne rozmowy i uprawnienia', async()=>{
  const original=Module._load;
  Module._load=function(request,parent,isMain){
   if(request==='@azure/functions')return {app:{http:(name,config)=>handlers.set(name,config.handler)}};
-  if(parent?.filename?.endsWith('/src/functions/index.js')){
+  if(parent?.filename?.replace(/\\/g,'/').endsWith('/src/functions/index.js')){
    if(request==='../lib/auth')return {requireUser:async req=>req.user};
    if(request==='../lib/storage')return fakeStorage;
   }
@@ -43,3 +43,4 @@ test('API: ogloszenia, odpowiedzi, prywatne rozmowy i uprawnienia', async()=>{
  res=await run('postsStatus',stranger,{id},{status:'closed'});assert.equal(res.status,403);
  res=await run('postsStatus',owner,{id},{status:'closed'});assert.equal(res.status,200);
 });
+
